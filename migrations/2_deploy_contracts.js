@@ -1,5 +1,5 @@
-var Whitelist = artifacts.require("./Whitelist.sol");
+var Staking = artifacts.require("./Staking.sol");
 
 module.exports = function(deployer) {
-  deployer.deploy(Whitelist);
+  deployer.deploy(Staking);
 };
