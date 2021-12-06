@@ -15,7 +15,10 @@ class App extends Component {
     accounts: null, 
     contract: null, 
     value:null,
-    TVL:null
+    TVL:null,
+    PriceBtc:null,
+    PriceEth: null,
+    NbReward:null
     };
 
   componentWillMount = async () => {
@@ -49,16 +52,21 @@ class App extends Component {
 
   runInit = async() => {
     const {accounts, contract,web3 } = this.state;
-    
 
     // Interaction avec le smart contract pour verifier le status 
     const StakeWei = await contract.methods.balances(accounts[0]).call();  
     const StakeEth = web3.utils.fromWei(StakeWei, 'ether');
     const tvlWei= await contract.methods.tvl().call();
     const tvlEther = web3.utils.fromWei(tvlWei, 'ether');
-    this.setState({ nbStakeEth: StakeEth, tvl: tvlEther});
+    const priceBtc= await contract.methods.VoirPrix("0x6135b13325bfC4B00278B4abC5e20bbce2D6580e").call();
+    const priceEth= await contract.methods.VoirPrix("0x9326BFA02ADD2366b30bacB125260Af641031331").call();
+    const RewardGain= await contract.methods.TotalReward(accounts[0]).call();
+    console.log(RewardGain);
 
-    //EVENEMENTS
+    
+    this.setState({ nbStakeEth: StakeEth, tvl: tvlEther,PriceBtc:priceBtc*0.00000001,PriceEth:priceEth*0.00000001,NbReward:RewardGain});
+   
+
     window.ethereum.on('accountsChanged', () => this.CompteMetamaskModifier());
 
     contract.events.Depot({},(err,event)=>{
@@ -71,11 +79,12 @@ class App extends Component {
   }; 
 
   CompteMetamaskModifier = async() => {
-    const { web3,contract } = this.state;
+    const { web3,contract,accounts } = this.state;
     const reloadedAccounts = await web3.eth.getAccounts();
     const StakeW = await contract.methods.balances(reloadedAccounts[0]).call();  
     const StakeE = web3.utils.fromWei(StakeW, 'ether');
-    this.setState({ accounts: reloadedAccounts, nbStakeEth: StakeE});
+    const Reward= await contract.methods.TotalReward(accounts[0]).call();
+    this.setState({ accounts: reloadedAccounts, nbStakeEth: StakeE,NbReward:Reward});
   }
 
   
@@ -88,6 +97,12 @@ class App extends Component {
     this.setState({ nbStakeEth: StakeEth, tvl: tvlEther});
 
   }
+  Claim = async () => {
+    const { accounts, contract ,web3} = this.state;
+    // Interaction avec le smart contract pour ajouter une proposition
+    await contract.methods.claimReward("0xEe65245403761b44CCAeF4391bA4b830ADEa578f","100000000000000000000").send({from: accounts[0]});
+  
+  }
 
 
   Retirer = async () => {
@@ -99,11 +114,18 @@ class App extends Component {
   
   }
 
+  Reload = async () => {
+    const { accounts, contract ,web3} = this.state;
+    await contract.methods.reward(accounts[0]).send({from: accounts[0]});
+    const RewardTotal= await contract.methods.TotalReward(accounts[0]).call();
+    this.setState({NbReward:RewardTotal});
+  }
+
 
  
 
   render() {
-    const {nbStakeEth, contract,tvl } = this.state;
+    const {nbStakeEth, contract,tvl , PriceBtc,PriceEth,NbReward} = this.state;
     if (!this.state.web3) {
       return <div>Loading Web3, accounts, and contract...</div>;
     }
@@ -126,23 +148,22 @@ class App extends Component {
                     </tr>
                     <tr>Stake:
                       <td><p>{nbStakeEth} ETH</p></td>
+                      <td><p>{nbStakeEth*PriceEth}$</p></td>
                     </tr>
                     <tr>Profit:
-                      <td>(Nombre de Profit en ETH )</td>
-                      <td> <button variant="dark">  Claim  </button>   </td>
+                      <td><p>{NbReward} PureToken</p></td>
+                      <td> <button onClick={this.Claim}  variant="dark">  Claim  </button>   </td>
+                      <td> <button onClick={this.Reload} variant="dark">  Reload  </button>   </td>
                     </tr>
-                    <tr> 
-                      <td>
-                        <p>Pour Stake en ETH Veuillez envoyer de l'ether a cette adresse<br></br> 0x95262362852A2aB68C6c5847d2834cD9889da4F1 </p>  
-                      </td>  
-                    </tr>  
                     <tr>  
                     <td>  
                       <Form.Control type="text" id="valeur"
                       ref={(input) => { this.valeur = input }}
                       />   
                     </td>   
-                       
+                      <td>
+                        <button onClick={this.Ajouter}  variant="dark">STAKE </button>     
+                      </td>
                       <td>
                         <button onClick={this.Retirer}  variant="dark">UNSTAKE </button>     
                       </td>
