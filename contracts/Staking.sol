@@ -1,76 +1,88 @@
-// Staking.sol
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.7;
+pragma solidity ^0.8.0;
 
-  import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-  import "../contracts/PriceConsumerV3.sol";
-  import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-  import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./PriceConsumerV3.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./TokenReward.sol";
 
- 
 
-  contract Staking {
-    using SafeMath for uint256;
-
-    IERC20 public PureToken;
+contract Staking {
+  // ---- State variables ----
+  TokenR public stakingToken;
+  using SafeMath for uint256;
+  uint256 public tvl = 0; // Total amount raised in ETH
+  uint StakedTime=0;
+  uint public montantAddReward;
+  uint public index=0;
+  mapping (address => uint256) public balances;
+  mapping (address => uint256) public RewardUnpaid; 
+  mapping (address => uint256) public RewartPaid; 
+  mapping (address => uint256) public TimeStake; 
     
-    uint256 public tvl = 0; // Total amount raised in ETH
-    uint public currentReward;
-    uint currentTime=0;
-    uint StakedTime=0;
-    mapping (address => uint256) public balances;
-    mapping (address => uint256) public TotalReward;  // Balances in incoming Ether
-    mapping (address => uint256) public TimeStake; 
     
-    
-    event Depot(address  _receiver,  uint256  _value);
-    event Whithdraw(address  _receiver,  uint256  _value);
+  event Depot(address  _receiver,address  _addressToken, uint256  _value);
+  event Whithdraw(address  _receiver,address  _addressToken,  uint256  _value);
+  event AmountReward(uint amount);
 
-    constructor(address _addresseToken) public {
-        PureToken = IERC20(_addresseToken);
-    }
-
-    PriceConsumerV3 private priceConsumerV3 = new PriceConsumerV3();
-
-
-    receive() payable external {
-      balances[msg.sender] = balances[msg.sender].add(msg.value);
-      tvl = tvl.add(msg.value);
-      TimeStake[msg.sender]=block.timestamp;
-      emit Depot(msg.sender, msg.value);
-    }
-
-   // refund investisor
-  function withdrawPayments(uint256 _amount) public{
-    require(balances[msg.sender] != 0);
-    tvl = tvl.sub(_amount);
-    balances[msg.sender] = balances[msg.sender].sub(_amount);
-    payable(msg.sender).transfer(_amount);
-    emit Whithdraw(msg.sender, _amount);
+  constructor() {
+    stakingToken = new TokenR();
+    stakingToken.faucet(address(this),1000000000000000000000000);
   }
 
-  function reward(address _address)public returns(uint){
+  PriceConsumerV3 private priceConsumerV3 = new PriceConsumerV3();
+
+
+  function stake(address _tokenAddress, uint256 _tokenValue) public {  
+    if(index!=0){
+      reward(msg.sender);
+      stakingToken.transfer(msg.sender,RewardUnpaid[msg.sender]*1000000000000000000);
+    }
+    balances[msg.sender] = balances[msg.sender].add(_tokenValue);
+    tvl = tvl.add(_tokenValue);   
+    TimeStake[msg.sender]=block.timestamp;
+    index=index+1;
+    RewardUnpaid[msg.sender]=0;
+    ERC20(_tokenAddress).transferFrom(msg.sender,address(this),_tokenValue*1000000000000000000);
+    emit Depot(msg.sender, _tokenAddress,_tokenValue);
+  }
+
+  function withdrawPayments(address _tokenAddress, uint256 _amount) public{
+    require(balances[msg.sender] != 0);
+    reward(msg.sender);
+    stakingToken.transfer(msg.sender,RewardUnpaid[msg.sender]*1000000000000000000);
+
+    tvl = tvl.sub(_amount);
+    balances[msg.sender] = balances[msg.sender].sub(_amount);
+    
+    RewardUnpaid[msg.sender]=0;
+    ERC20(_tokenAddress).transfer(msg.sender, _amount*1000000000000000000);
+    emit Whithdraw(msg.sender,_tokenAddress ,_amount);
+  }
+
+  function ClaimAllReward() public{
+    reward(msg.sender);
+    stakingToken.transfer(msg.sender,RewardUnpaid[msg.sender]*1000000000000000000);
+    
+  }
+
+  function reward(address _address)public{
     uint TotalStake=balances[_address];
-    uint T_Stake=TimeStake[_address];
-    currentTime= block.timestamp;
     StakedTime=block.timestamp-TimeStake[_address];
-    TotalReward[_address]=TotalStake*StakedTime/ 100000000000000;
-    return TotalReward[_address];
+    RewardUnpaid[_address]=TotalStake*StakedTime/ 100;
+    emit AmountReward(RewardUnpaid[msg.sender]);
+  }
+
+  function getRewardUnpaid()public view returns(uint){
+    return RewardUnpaid[msg.sender];
   }
 
   function getTime()public view returns(uint){
     return block.timestamp;
   }
-  
-  function claimReward(address recipient,uint montant)external{
-    TotalReward[msg.sender]=TotalReward[msg.sender]-(montant/100000000000000000000);
-    PureToken.transfer(recipient,montant);
-    
-  }
-    // fonction qui permet d'effectuer un transfer de dai vers le recipient
+
   function VoirPrix(address token) public view returns(int) {
     return priceConsumerV3.getLatestPrice(token);
-  }
-
-  
+  } 
 }

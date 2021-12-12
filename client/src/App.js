@@ -54,17 +54,16 @@ class App extends Component {
     const {accounts, contract,web3 } = this.state;
 
     // Interaction avec le smart contract pour verifier le status 
-    const StakeWei = await contract.methods.balances(accounts[0]).call();  
-    const StakeEth = web3.utils.fromWei(StakeWei, 'ether');
-    const tvlWei= await contract.methods.tvl().call();
-    const tvlEther = web3.utils.fromWei(tvlWei, 'ether');
-    const priceBtc= await contract.methods.VoirPrix("0x6135b13325bfC4B00278B4abC5e20bbce2D6580e").call();
-    const priceEth= await contract.methods.VoirPrix("0x9326BFA02ADD2366b30bacB125260Af641031331").call();
-    const RewardGain= await contract.methods.TotalReward(accounts[0]).call();
-    console.log(RewardGain);
+    const Stake = await contract.methods.balances(accounts[0]).call();  
+    const tvl= await contract.methods.tvl().call();
+    const priceBtc= await contract.methods.VoirPrix("0x2431452A0010a43878bF198e170F6319Af6d27F4").call();
+    const priceUsdEth= await contract.methods.VoirPrix("0xdCA36F27cbC4E38aE16C4E9f99D39b42337F6dcf").call();
+    const reward= await contract.methods.RewardUnpaid(accounts[0]).call();
+    console.log(reward);
+
 
     
-    this.setState({ nbStakeEth: StakeEth, tvl: tvlEther,PriceBtc:priceBtc*0.00000001,PriceEth:priceEth*0.00000001,NbReward:RewardGain});
+    this.setState({ nbStakeEth: Stake, tvl: tvl,PriceBtc:priceBtc*0.00000001,PriceEth:priceUsdEth*0.000000000000000001,NbReward:reward});
    
 
     window.ethereum.on('accountsChanged', () => this.CompteMetamaskModifier());
@@ -90,34 +89,42 @@ class App extends Component {
   
   InitValueStake = async (event) => {
     const {accounts, contract,web3 } = this.state;
-    const StakeWei = await contract.methods.balances(accounts[0]).call();  
-    const StakeEth = web3.utils.fromWei(StakeWei, 'ether');
-    const tvlWei= await contract.methods.tvl().call();
-    const tvlEther = web3.utils.fromWei(tvlWei, 'ether');
-    this.setState({ nbStakeEth: StakeEth, tvl: tvlEther});
+    const Stake = await contract.methods.balances(accounts[0]).call();  
+    const tvl= await contract.methods.tvl().call();
+    this.setState({ nbStakeEth: Stake, tvl: tvl});
 
   }
   Claim = async () => {
     const { accounts, contract ,web3} = this.state;
     // Interaction avec le smart contract pour ajouter une proposition
-    await contract.methods.claimReward("0xEe65245403761b44CCAeF4391bA4b830ADEa578f","100000000000000000000").send({from: accounts[0]});
+    await contract.methods.ClaimAllReward().send({from: accounts[0]});
   
   }
-
+  Deposer = async () => {
+    const { accounts, contract ,web3} = this.state;
+    const valeur = this.valeur.value;
+    // Interaction avec le smart contract pour ajouter une proposition
+    await contract.methods.stake("0x2935ca045C1AfF51D29eE75d32d2506C903Be3E9",valeur).send({from: accounts[0]});
+  
+  }
 
   Retirer = async () => {
     const { accounts, contract ,web3} = this.state;
     const valeur = this.valeur.value;
-    const valeurWei = web3.utils.toWei(valeur, 'ether');
+    console.log(valeur);
+    const RewardTotal= await contract.methods.RewardUnpaid(accounts[0]).call();
+    console.log(RewardTotal);
     // Interaction avec le smart contract pour ajouter une proposition
-    await contract.methods.withdrawPayments(valeurWei).send({from: accounts[0]});
-  
+    await contract.methods.withdrawPayments("0x2935ca045C1AfF51D29eE75d32d2506C903Be3E9",valeur).send({from: accounts[0]});
+    const RewardTl= await contract.methods.RewardUnpaid(accounts[0]).call();
+    console.log(RewardTl);
   }
 
   Reload = async () => {
     const { accounts, contract ,web3} = this.state;
     await contract.methods.reward(accounts[0]).send({from: accounts[0]});
-    const RewardTotal= await contract.methods.TotalReward(accounts[0]).call();
+    const RewardTotal= await contract.methods.RewardUnpaid(accounts[0]).call();
+    console.log(RewardTotal);
     this.setState({NbReward:RewardTotal});
   }
 
@@ -129,6 +136,7 @@ class App extends Component {
     if (!this.state.web3) {
       return <div>Loading Web3, accounts, and contract...</div>;
     }
+
     return (
       <div className="App">
         <div>
@@ -138,17 +146,17 @@ class App extends Component {
         </div>
         <div style={{display: 'flex', justifyContent: 'center'}}>
           <Card style={{ width: '50rem' }}>
-            <Card.Header><strong>Staking ETH</strong></Card.Header>
+            <Card.Header><strong>Staking UST</strong></Card.Header>
             <Card.Body>
               <ListGroup variant="flush">
                 <ListGroup.Item>
                     <tbody>
                     <tr>TVL:
-                      <td><p>{tvl} ETH</p></td>
+                      <td><p>{tvl} UST</p></td>
                     </tr>
                     <tr>Stake:
-                      <td><p>{nbStakeEth} ETH</p></td>
-                      <td><p>{nbStakeEth*PriceEth}$</p></td>
+                      <td><p>{nbStakeEth} UST</p></td>
+                      <td><p>{nbStakeEth*PriceEth} ETH</p></td>
                     </tr>
                     <tr>Profit:
                       <td><p>{NbReward} PureToken</p></td>
@@ -162,7 +170,7 @@ class App extends Component {
                       />   
                     </td>   
                       <td>
-                        <button onClick={this.Ajouter}  variant="dark">STAKE </button>     
+                        <button onClick={this.Deposer}  variant="dark">STAKE </button>     
                       </td>
                       <td>
                         <button onClick={this.Retirer}  variant="dark">UNSTAKE </button>     

@@ -11,19 +11,19 @@ module.exports = {
     },
     rinkeby: {
       provider: function() {
-        return new HDWalletProvider(`${process.env.MNEMONIC}`, `https://rinkeby.infura.io/v3/${process.env.INFURA}`)
+        return new HDWalletProvider(`${process.env.MNEMONIC}`, `https://rinkeby.infura.io/v3/4c2aef8f0b8d4b19b85e3bef915da9ba`)
       },
       network_id: 4
     },
     ropsten: {
       provider: function() {
-        return new HDWalletProvider(`${process.env.MNEMONIC}`, `https://ropsten.infura.io/v3/${process.env.INFURA}`)
+        return new HDWalletProvider(`${process.env.MNEMONIC}`, `https://ropsten.infura.io/v3/4c2aef8f0b8d4b19b85e3bef915da9ba`)
       },
       network_id: 3
     },
     kovan: {
       provider: function() {
-        return new HDWalletProvider(`${process.env.MNEMONIC}`, `https://kovan.infura.io/v3/${process.env.INFURA}`)
+        return new HDWalletProvider(`${process.env.MNEMONIC}`, `https://kovan.infura.io/v3/4c2aef8f0b8d4b19b85e3bef915da9ba`)
       },
       network_id: 42
     }
