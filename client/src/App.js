@@ -71,9 +71,15 @@ class App extends Component {
     contract.events.Depot({},(err,event)=>{
     
     });
-
+    contract.events.Depot({},(err,event)=>{
+      this.InitValueStake(event);
+    });
     contract.events.Whithdraw({},(err,event)=>{
       this.InitValueStake(event);
+    });
+
+    contract.events.AmountReward({},(err,event)=>{
+      this.ReloadReward(event);
     });
   }; 
 
@@ -101,11 +107,11 @@ class App extends Component {
   
   }
   Deposer = async () => {
-    const { accounts, contract ,web3} = this.state;
+    const { accounts, contract } = this.state;
     const valeur = this.valeur.value;
     // Interaction avec le smart contract pour ajouter une proposition
-    await contract.methods.stake("0x2935ca045C1AfF51D29eE75d32d2506C903Be3E9",valeur).send({from: accounts[0]});
-  
+    await contract.methods.stake("0x59eb0c7e86f143272def5022238bbe7b810e5860",valeur).send({from: accounts[0]});
+    
   }
 
   Retirer = async () => {
@@ -115,7 +121,7 @@ class App extends Component {
     const RewardTotal= await contract.methods.RewardUnpaid(accounts[0]).call();
     console.log(RewardTotal);
     // Interaction avec le smart contract pour ajouter une proposition
-    await contract.methods.withdrawPayments("0x2935ca045C1AfF51D29eE75d32d2506C903Be3E9",valeur).send({from: accounts[0]});
+    await contract.methods.withdrawPayments("0x59eb0c7e86f143272def5022238bbe7b810e5860",valeur).send({from: accounts[0]});
     const RewardTl= await contract.methods.RewardUnpaid(accounts[0]).call();
     console.log(RewardTl);
   }
@@ -123,6 +129,11 @@ class App extends Component {
   Reload = async () => {
     const { accounts, contract ,web3} = this.state;
     await contract.methods.reward(accounts[0]).send({from: accounts[0]});
+    const RewardTotal= await contract.methods.RewardUnpaid(accounts[0]).call();
+    this.setState({NbReward:RewardTotal});
+  }
+  ReloadReward = async () => {
+    const { accounts, contract } = this.state;
     const RewardTotal= await contract.methods.RewardUnpaid(accounts[0]).call();
     console.log(RewardTotal);
     this.setState({NbReward:RewardTotal});

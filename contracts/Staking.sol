@@ -64,7 +64,7 @@ contract Staking {
   function ClaimAllReward() public{
     reward(msg.sender);
     stakingToken.transfer(msg.sender,RewardUnpaid[msg.sender]*1000000000000000000);
-    
+    RewardUnpaid[msg.sender]=0;
   }
 
   function reward(address _address)public{

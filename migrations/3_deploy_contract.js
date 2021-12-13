@@ -3,6 +3,7 @@ var Staking = artifacts.require("./Staking.sol");
 
 
 module.exports = async(deployer, _network, accounts) => {
-  deployer.deploy(Staking);
-  
+
+  const staking = await Staking.deployed();
+  deployer.deploy(ERC20Token,"10000000",staking.address);  
 };
