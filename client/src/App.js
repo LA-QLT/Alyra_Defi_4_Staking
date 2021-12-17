@@ -1,10 +1,10 @@
 import React, { Component } from "react";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import Button from 'react-bootstrap/Button';
+// import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
 import ListGroup from 'react-bootstrap/ListGroup';
-import Table from 'react-bootstrap/Table';
+// import Table from 'react-bootstrap/Table';
 import Staking from "./contracts/Staking.json";
 import getWeb3 from "./getWeb3";
 import "./App.css";
@@ -37,7 +37,7 @@ class App extends Component {
         Staking.abi,
         deployedNetwork && deployedNetwork.address,
       );
-      
+
       // Set web3, accounts, and contract to the state, and then proceed with an
       // example of interacting with the contract's methods.
       this.setState({ web3, accounts, contract: instance }, this.runInit);
@@ -51,19 +51,19 @@ class App extends Component {
   };
 
   runInit = async() => {
-    const {accounts, contract,web3 } = this.state;
-
-    // Interaction avec le smart contract pour verifier le status 
+    const {accounts, contract } = this.state;
     const Stake = await contract.methods.balances(accounts[0]).call();  
     const tvl= await contract.methods.tvl().call();
-    const priceBtc= await contract.methods.VoirPrix("0x2431452A0010a43878bF198e170F6319Af6d27F4").call();
-    const priceUsdEth= await contract.methods.VoirPrix("0xdCA36F27cbC4E38aE16C4E9f99D39b42337F6dcf").call();
+   // const priceBtc= await contract.methods.VoirPrix("0x2431452A0010a43878bF198e170F6319Af6d27F4").call();
+    //const priceUsdEth= await contract.methods.VoirPrix("0xdCA36F27cbC4E38aE16C4E9f99D39b42337F6dcf").call();
+    const priceBtc= "49400";
+    const priceUsdEth= "4000";
     const reward= await contract.methods.RewardUnpaid(accounts[0]).call();
-    console.log(reward);
+
 
 
     
-    this.setState({ nbStakeEth: Stake, tvl: tvl,PriceBtc:priceBtc*0.00000001,PriceEth:priceUsdEth*0.000000000000000001,NbReward:reward});
+    this.setState({ value: Stake, tvl: tvl,PriceBtc:priceBtc*0.00000001,PriceEth:priceUsdEth*0.000000000000000001,NbReward:reward});
    
 
     window.ethereum.on('accountsChanged', () => this.CompteMetamaskModifier());
@@ -86,48 +86,39 @@ class App extends Component {
   CompteMetamaskModifier = async() => {
     const { web3,contract,accounts } = this.state;
     const reloadedAccounts = await web3.eth.getAccounts();
-    const StakeW = await contract.methods.balances(reloadedAccounts[0]).call();  
-    const StakeE = web3.utils.fromWei(StakeW, 'ether');
+    const Value = await contract.methods.balances(reloadedAccounts[0]).call();  
     const Reward= await contract.methods.TotalReward(accounts[0]).call();
-    this.setState({ accounts: reloadedAccounts, nbStakeEth: StakeE,NbReward:Reward});
+    this.setState({ accounts: reloadedAccounts, value: Value,NbReward:Reward});
   }
 
   
   InitValueStake = async (event) => {
-    const {accounts, contract,web3 } = this.state;
+    const {accounts, contract } = this.state;
     const Stake = await contract.methods.balances(accounts[0]).call();  
     const tvl= await contract.methods.tvl().call();
-    this.setState({ nbStakeEth: Stake, tvl: tvl});
+    this.setState({ value: Stake, tvl: tvl});
 
   }
   Claim = async () => {
-    const { accounts, contract ,web3} = this.state;
-    // Interaction avec le smart contract pour ajouter une proposition
+    const { accounts, contract } = this.state;
     await contract.methods.ClaimAllReward().send({from: accounts[0]});
   
   }
   Deposer = async () => {
     const { accounts, contract } = this.state;
     const valeur = this.valeur.value;
-    // Interaction avec le smart contract pour ajouter une proposition
-    await contract.methods.stake("0x59eb0c7e86f143272def5022238bbe7b810e5860",valeur).send({from: accounts[0]});
+    await contract.methods.stake("0xb3149b25545a0ae3005ddaef08152c5241dc423e",valeur).send({from: accounts[0]});
     
   }
 
   Retirer = async () => {
-    const { accounts, contract ,web3} = this.state;
+    const { accounts, contract } = this.state;
     const valeur = this.valeur.value;
-    console.log(valeur);
-    const RewardTotal= await contract.methods.RewardUnpaid(accounts[0]).call();
-    console.log(RewardTotal);
-    // Interaction avec le smart contract pour ajouter une proposition
-    await contract.methods.withdrawPayments("0x59eb0c7e86f143272def5022238bbe7b810e5860",valeur).send({from: accounts[0]});
-    const RewardTl= await contract.methods.RewardUnpaid(accounts[0]).call();
-    console.log(RewardTl);
+    await contract.methods.withdrawPayments("0xb3149b25545a0ae3005ddaef08152c5241dc423e",valeur).send({from: accounts[0]});
   }
 
   Reload = async () => {
-    const { accounts, contract ,web3} = this.state;
+    const { accounts, contract } = this.state;
     await contract.methods.reward(accounts[0]).send({from: accounts[0]});
     const RewardTotal= await contract.methods.RewardUnpaid(accounts[0]).call();
     this.setState({NbReward:RewardTotal});
@@ -135,7 +126,6 @@ class App extends Component {
   ReloadReward = async () => {
     const { accounts, contract } = this.state;
     const RewardTotal= await contract.methods.RewardUnpaid(accounts[0]).call();
-    console.log(RewardTotal);
     this.setState({NbReward:RewardTotal});
   }
 
@@ -143,7 +133,7 @@ class App extends Component {
  
 
   render() {
-    const {nbStakeEth, contract,tvl , PriceBtc,PriceEth,NbReward} = this.state;
+    const {value,tvl ,PriceEth,NbReward} = this.state;
     if (!this.state.web3) {
       return <div>Loading Web3, accounts, and contract...</div>;
     }
@@ -166,8 +156,8 @@ class App extends Component {
                       <td><p>{tvl} UST</p></td>
                     </tr>
                     <tr>Stake:
-                      <td><p>{nbStakeEth} UST</p></td>
-                      <td><p>{nbStakeEth*PriceEth} ETH</p></td>
+                      <td><p>{value} UST</p></td>
+                      <td><p>{value*PriceEth} ETH</p></td>
                     </tr>
                     <tr>Profit:
                       <td><p>{NbReward} PureToken</p></td>
